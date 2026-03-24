@@ -15,7 +15,7 @@ import https from 'https';
 
 // ─── Constants & Dynamic Variables ─────────────────────
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 const ALERT_COOLDOWN_MS = 60_000;
 
 // ✅ Made these variables dynamic for Mission Control overrides
