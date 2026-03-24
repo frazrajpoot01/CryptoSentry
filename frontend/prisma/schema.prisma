@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ✅ UPDATED FOR PRISMA 7.5: No URL here anymore!
+datasource db {
+  provider = "postgresql"
+ 
+}
+
+model User {
+  id            String      @id @default(uuid())
+  email         String      @unique
+  password_hash String?     // Optional so Google users can log in without it
+  name          String?
+  image         String?
+  emailVerified DateTime?   
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @updatedAt
+
+  // ─── NEW: SETTINGS COLUMNS ───
+  sensitivity       Float   @default(-2.0)
+  aggressivePolling Boolean @default(false)
+  uiMode            String  @default("compact")
+
+  // ─── RELATIONS ───
+  watchlists    Watchlist[]
+  accounts      Account[]
+  
+
+  @@map("users")
+}
+
+// ─── NEW: REQUIRED NEXTAUTH TABLES (Mapped to match your DB style) ───
+
+model Account {
+  id                 String  @id @default(uuid())
+  userId             String  @map("user_id")
+  type               String
+  provider           String
+  providerAccountId  String  @map("provider_account_id")
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+
+
+// ─── YOUR EXISTING MODELS ───
+
+model Watchlist {
+  id         String   @id @default(uuid())
+  user_id    String
+  asset_id   String
+  asset_name String
+  added_at   DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, asset_id])
+  @@map("watchlists")
+}
+
+model CryptoAlert {
+  id              String   @id @default(uuid())
+  asset_id        String
+  asset_name      String
+  price_at_drop   Decimal  @db.Decimal(18, 8)
+  drop_percentage Float
+  detected_at     DateTime @default(now())
+
+  @@index([detected_at])
+  @@map("crypto_alerts")
+}
