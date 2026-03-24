@@ -36,7 +36,10 @@ const mapIdToSymbol = (id: string) => {
 export default function WatchlistPage() {
     const { data: session, status } = useSession();
 
-    const { data, error, isLoading } = useSWR('http://localhost:4000/cache', fetcher, {
+    // Grab the live URL we exposed in next.config.ts
+    const API_URL = process.env.EXPRESS_SERVER_URL || 'http://localhost:4000';
+
+    const { data, error, isLoading } = useSWR(`${API_URL}/cache`, fetcher, {
         refreshInterval: 10000,
     });
 
