@@ -38,7 +38,8 @@ export default function MarketDataPage() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const { data: priceData, isLoading: pricesLoading } = useSWR('http://localhost:4000/cache', fetcher, {
+  const API_URL = process.env.EXPRESS_SERVER_URL || 'http://localhost:4000';
+  const { data: priceData, isLoading: pricesLoading } = useSWR(`${API_URL}/cache`, fetcher, {
     refreshInterval: 5000,
   });
 

@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: true,
 
+  env: {
+    EXPRESS_SERVER_URL: process.env.EXPRESS_SERVER_URL,
+  },
+
   typescript: {
     // This allows the build to finish even if TypeScript is confused about Prisma
     ignoreBuildErrors: true,
