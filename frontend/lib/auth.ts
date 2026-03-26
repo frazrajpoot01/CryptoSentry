@@ -1,19 +1,18 @@
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import GoogleProvider from 'next-auth/providers/google'; // ✅ NEW
-import { PrismaAdapter } from '@next-auth/prisma-adapter'; // ✅ NEW
+import GoogleProvider from 'next-auth/providers/google';
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/prisma';
+import { sendWelcomeEmail } from '@/lib/email';
+import { cookies } from 'next/headers'; // ✅ ADDED THIS IMPORT
 
 export const authOptions: NextAuthOptions = {
-  // ✅ NEW: This adapter tells NextAuth to auto-create Google users in your PostgreSQL DB
   adapter: PrismaAdapter(prisma),
   session: {
-    // We force this to 'jwt' so we keep your ultra-fast, lightweight cookie sessions
     strategy: 'jwt',
   },
   providers: [
-    // ✅ NEW: The Google Gateway Configuration
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
@@ -34,7 +33,6 @@ export const authOptions: NextAuthOptions = {
           where: { email: credentials.email },
         });
 
-        // ✅ UPDATED: Prevent crash if they used Google to sign up (password_hash is null)
         if (!user || !user.password_hash) {
           throw new Error('No account found, or this email uses Google Login.');
         }
@@ -48,7 +46,6 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Invalid password');
         }
 
-        // Return ONLY the essentials to keep the cookie tiny
         return {
           id: user.id,
           email: user.email,
@@ -56,15 +53,34 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+
+  // ✅ UPDATED: The Events block now handles the Google Sign-up "Secret Flag"
+  events: {
+    async createUser({ user }) {
+      if (user.email) {
+        console.log(`[NextAuth Event] New user created: ${user.email}. Firing welcome email...`);
+
+        // 1. Trigger the Welcome Email
+        await sendWelcomeEmail(user.email, user.name || 'Operator');
+
+        // 2. ✅ SET THE COOKIE: This tells the WelcomeBanner to show up 
+        // regardless of which button they clicked on the login page.
+        const cookieStore = await cookies();
+        cookieStore.set('is_new_user', 'true', {
+          maxAge: 60, // Expires in 60 seconds
+          path: '/'
+        });
+      }
+    },
+  },
+
   callbacks: {
     async jwt({ token, user, trigger }) {
-      // When the user first logs in (via Google OR Credentials)
       if (user) {
         token.id = user.id;
         token.email = user.email as string;
       }
 
-      // Catch the update() signal from your Profile Page
       if (trigger === "update") {
         token.refreshTrigger = Date.now();
       }
@@ -77,17 +93,16 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
 
-        // Fetch the heavy data (name and image) directly from the database!
-        // This keeps your cookie under 4KB but perfectly syncs your Google/Local UI.
         try {
           const dbUser = await prisma.user.findUnique({
             where: { email: session.user.email as string },
-            select: { name: true, image: true }
+            select: { name: true, image: true, created_at: true }
           });
 
           if (dbUser) {
             session.user.name = dbUser.name;
             session.user.image = dbUser.image;
+            session.user.createdAt = dbUser.created_at?.toISOString() ?? null;
           }
         } catch (error) {
           console.error("Error fetching user session data:", error);

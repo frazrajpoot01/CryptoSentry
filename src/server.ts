@@ -20,7 +20,7 @@ const ALERT_COOLDOWN_MS = 60_000;
 
 // ✅ Made these variables dynamic for Mission Control overrides
 let currentPollInterval = 60_000;
-let currentThreshold = -2.0;
+let currentThreshold = -0.3;
 let pollingTimer: ReturnType<typeof setInterval> | null = null;
 
 const COINGECKO_URL =
@@ -194,6 +194,30 @@ async function fetchAndAnalyze(): Promise<void> {
   }
 }
 
+// ─── Database Self-Cleaning Protocol ───────────────────
+
+// Automatically sweeps the database to delete alerts older than 2 days
+async function cleanupOldAlerts(): Promise<void> {
+  // Calculate the exact timestamp for 48 hours ago
+  const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+
+  try {
+    const result = await prisma.cryptoAlert.deleteMany({
+      where: {
+        detected_at: {
+          lt: twoDaysAgo // Less than 48 hours ago
+        }
+      }
+    });
+
+    if (result.count > 0) {
+      console.log(`[CLEANUP] 🧹 Swept and destroyed ${result.count} old alerts from the archive.`);
+    }
+  } catch (err) {
+    console.error('[CLEANUP ERROR] Failed to delete old alerts:', err);
+  }
+}
+
 // ─── Express App ───────────────────────────────────────
 
 const app = express();
@@ -262,11 +286,16 @@ async function bootstrap(): Promise<void> {
   });
 
   await fetchAndAnalyze();
+  await cleanupOldAlerts();
 
   // ✅ Assigned to our dynamic polling timer variable
   pollingTimer = setInterval(() => {
     void fetchAndAnalyze();
   }, currentPollInterval);
+
+  setInterval(() => {
+    void cleanupOldAlerts();
+  }, 60 * 60 * 1000);
 }
 
 bootstrap().catch((err) => {

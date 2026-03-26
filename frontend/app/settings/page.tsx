@@ -170,10 +170,11 @@ export default function SettingsPage() {
                                         <span className="text-green-500 font-bold tracking-widest">{sensitivity.toFixed(1)}%</span>
                                     </div>
 
+                                    {/* ✅ UPDATED: max changed to -0.1 */}
                                     <input
                                         type="range"
                                         min="-10.0"
-                                        max="-0.5"
+                                        max="-0.1"
                                         step="0.1"
                                         value={sensitivity}
                                         onChange={(e) => setSensitivity(parseFloat(e.target.value))}
@@ -240,7 +241,7 @@ export default function SettingsPage() {
                                             <span className="text-xs font-bold tracking-widest uppercase">Expanded View</span>
                                         </div>
                                         {/* Radio Dot */}
-                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${uiMode === 'expanded' ? 'border-green-500' : 'border-zinc-700'}`}>
+                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${uiMode === 'expanded' ? 'border-zinc-700' : 'border-zinc-700'}`}>
                                             {uiMode === 'expanded' && <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
                                         </div>
                                     </button>

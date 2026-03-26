@@ -2,14 +2,12 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Mail, Lock, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 
 type Mode = 'login' | 'signup';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,8 +43,13 @@ export default function LoginPage() {
       if (result?.error) {
         setError("AUTHENTICATION_FAILURE: Invalid Credentials");
       } else {
-        router.push('/');
-        router.refresh();
+        // ✅ SUCCESS LOGIC: Only trigger the banner if the user just registered
+        if (mode === 'signup') {
+          sessionStorage.setItem('triggerWelcome', 'true');
+        }
+
+        // Hard redirect to dashboard
+        window.location.href = '/';
       }
     } catch {
       setError('SYSTEM_ERROR: Connection timed out');
@@ -154,10 +157,16 @@ export default function LoginPage() {
               <div className="h-[1px] flex-1 bg-zinc-800" />
             </div>
 
-            {/* ✅ UPDATED: Google Sign In with official SVG and Callback URL */}
+            {/* ✅ GOOGLE LOGIN WITH BANNER TRIGGER */}
             <button
               type="button"
-              onClick={() => signIn('google', { callbackUrl: '/' })}
+              onClick={() => {
+                // If the user clicks Google while in signup mode, set the trigger
+                if (mode === 'signup') {
+                  sessionStorage.setItem('triggerWelcome', 'true');
+                }
+                signIn('google', { callbackUrl: '/' });
+              }}
               className="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-all"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -166,7 +175,7 @@ export default function LoginPage() {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
-              Sign in with Google
+              {mode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}
             </button>
           </form>
 
@@ -188,10 +197,8 @@ export default function LoginPage() {
         {/* Grid Overlay */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
 
-        {/* Placeholder for your 3D Asset/Chart Graphic */}
         <div className="absolute inset-0 flex flex-col items-center justify-center p-20">
           <div className="relative w-full h-full border border-zinc-800/50 rounded-2xl bg-zinc-950/50 backdrop-blur-sm p-8 flex flex-col justify-end">
-            {/* Protocol Active Badge */}
             <div className="absolute top-8 left-8 flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-[10px] text-green-500 font-bold tracking-[0.3em] uppercase">Protocol Active</span>
@@ -206,7 +213,6 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Decorative Elements */}
             <div className="absolute right-0 top-1/4 opacity-10 select-none pointer-events-none">
               <div className="text-[12rem] font-black italic leading-none">SENTRY</div>
             </div>

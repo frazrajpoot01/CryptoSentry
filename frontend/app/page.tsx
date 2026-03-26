@@ -1,5 +1,6 @@
 import Navbar from '@/components/Navbar';
 import LivePriceGrid from '@/components/LivePriceGrid';
+import WelcomeBanner from '@/components/WelcomeBanner';
 import { ShieldCheck, TerminalSquare, LayoutGrid, List, Bell, Search, User, Settings } from 'lucide-react';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
@@ -40,17 +41,17 @@ async function getInitialPrices(): Promise<{ data: CachedPrice[]; stale: boolean
 }
 
 export default async function DashboardPage() {
-  // Fetch initial prices and secure user session
   const { data: initialData, stale: initialStale } = await getInitialPrices();
   const session = await getServerSession(authOptions);
+
+  // ✅ CLEANED UP: We removed the createdAt math. 
+  // The WelcomeBanner now checks sessionStorage to see if the user JUST signed up.
 
   return (
     <div className="min-h-screen flex bg-[#050505] text-white font-mono selection:bg-green-500/30">
 
-      {/* ✅ INJECT MOBILE NAVBAR HERE */}
       <Navbar />
 
-      {/* ─── DESKTOP SIDEBAR (Untouched) ─── */}
       <aside className="w-64 border-r border-green-900/20 bg-[#0a0a0a] p-6 hidden md:flex flex-col justify-between z-10 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
         <div>
           <div className="flex items-center gap-3 mb-12 text-green-500">
@@ -62,7 +63,6 @@ export default async function DashboardPage() {
           </div>
 
           <nav className="space-y-3 text-sm text-zinc-400">
-            {/* ACTIVE STATE: DASHBOARD */}
             <a href="/" className="flex items-center bg-green-500/10 text-green-500 p-3 rounded-lg border border-green-500/20 font-bold transition-all cursor-pointer relative">
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-green-500 rounded-r" />
               <LayoutGrid className="w-4 h-4 mr-3" /> Dashboard
@@ -85,7 +85,6 @@ export default async function DashboardPage() {
           </nav>
         </div>
 
-        {/* Profile Widget */}
         {session?.user && (
           <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl mt-auto">
             <div className="w-8 h-8 rounded bg-green-900 text-green-500 flex items-center justify-center font-bold overflow-hidden uppercase">
@@ -103,29 +102,29 @@ export default async function DashboardPage() {
         )}
       </aside>
 
-      {/* ─── MAIN CONTENT ─── */}
       <main className="flex-1 flex flex-col relative overflow-hidden z-0">
-        {/* Ambient cyber glow */}
         <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-green-900/10 rounded-full blur-[120px] pointer-events-none -z-10" />
 
-        {/* ✅ MOBILE PADDING ADDED (px-4 pt-24 pb-28 md:p-10) */}
-        <div className="flex-1 overflow-y-auto px-4 pt-24 pb-28 md:p-10">
+        <div className="flex-1 overflow-y-auto px-4 pt-24 pb-28 md:p-6 xl:p-10">
           <div className="max-w-7xl mx-auto">
 
-            {/* ─── TERMINAL HEADER ─── */}
+            {/* ✅ UPDATED: The banner now manages its own visibility logic */}
+            <div className="mb-4">
+              <WelcomeBanner />
+            </div>
+
             <header className="mb-8 md:mb-10">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 w-full">
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.1)] flex-shrink-0">
-                  <TerminalSquare className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
+                  <TerminalSquare className="w-5 h-5 md:w-6 md:h-6 text-green-500 flex-shrink-0" />
                 </div>
-                <div>
-                  {/* ✅ Text dynamically scales for mobile */}
-                  <h1 className="text-2xl md:text-3xl font-black italic tracking-wider text-white">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-2xl md:text-3xl font-black italic tracking-wider text-white truncate">
                     TERMINAL ONE
                   </h1>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
-                    <span className="text-[10px] md:text-xs text-green-500/70 tracking-widest uppercase truncate">
+                  <div className="flex items-center gap-2 mt-1 w-full">
+                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)] flex-shrink-0" />
+                    <span className="block flex-1 text-[10px] md:text-xs text-green-500/70 tracking-widest uppercase truncate">
                       Real-Time Intelligence Aggregate V4.2.0
                     </span>
                   </div>
@@ -133,8 +132,6 @@ export default async function DashboardPage() {
               </div>
             </header>
 
-            {/* ─── LIVE GRID COMPONENT ─── */}
-            {/* Note: If your LivePriceGrid cards look squished on mobile, make sure the grid inside LivePriceGrid has `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` */}
             <LivePriceGrid initialData={initialData} initialStale={initialStale} />
 
           </div>

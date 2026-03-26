@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/prisma';
+import { sendWelcomeEmail } from '@/lib/email'; // ✅ NEW: Import your email utility
 
 export async function POST(request: Request) {
   try {
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
 
     const password_hash = await bcrypt.hash(password, 10);
 
+    // 1. Create the user in the database
     const user = await prisma.user.create({
       data: {
         email,
@@ -41,6 +43,12 @@ export async function POST(request: Request) {
       },
     });
 
+    // ✅ 2. Trigger the welcome email for the new user
+    // We await this so the serverless function doesn't shut down before Resend finishes sending
+    console.log(`[Signup API] New user created: ${user.email}. Firing welcome email...`);
+    await sendWelcomeEmail(user.email, 'Operator');
+
+    // 3. Return the success response
     return NextResponse.json(
       { message: 'Account created successfully', userId: user.id },
       { status: 201 }

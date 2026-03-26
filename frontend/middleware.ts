@@ -8,16 +8,21 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  const { pathname } = request.nextUrl;
+  // ✅ ADDED 'search' to grab any URL parameters (like ?onboarded=true)
+  const { pathname, search } = request.nextUrl;
 
   // Redirect authenticated users away from /login
   if (pathname === '/login' && token) {
-    return NextResponse.redirect(new URL('/', request.url));
+    const url = new URL('/', request.url);
+    url.search = search; // ✅ PRESERVE THE PARAMETERS
+    return NextResponse.redirect(url);
   }
 
   // Redirect unauthenticated users to /login for protected routes
   if (pathname !== '/login' && !token) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    const url = new URL('/login', request.url);
+    url.search = search; // ✅ PRESERVE THE PARAMETERS
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();

@@ -20,13 +20,13 @@ export default function ProfilePage() {
     const [isUploadingImage, setIsUploadingImage] = useState(false);
 
     // Local state (Starts empty, gets filled by useEffect when session loads)
-    const [tempName, setTempName] = useState('FRAZ_OPERATOR');
+    const [tempName, setTempName] = useState('OPERATOR');
     const [profileImage, setProfileImage] = useState<string | null>(null);
 
     // Watch the session. When it's ready, instantly update our UI state.
     useEffect(() => {
         if (session?.user) {
-            setTempName(session.user.name || 'FRAZ_OPERATOR');
+            setTempName(session.user.name || 'OPERATOR');
             setProfileImage(session.user.image || null);
         }
     }, [session]);
