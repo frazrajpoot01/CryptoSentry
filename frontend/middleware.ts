@@ -28,6 +28,15 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
+// ✅ UPDATED matcher to include all your specific frontend routes
 export const config = {
-  matcher: ['/', '/login'],
+  matcher: [
+    '/',
+    '/login',
+    '/alerts',
+    '/market',
+    '/profile',
+    '/settings',
+    '/watchlist'
+  ],
 };
