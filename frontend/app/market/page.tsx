@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -33,48 +33,49 @@ const mapIdToSymbol = (id: string) => {
 };
 
 export default function MarketDataPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [searchQuery, setSearchQuery] = useState('');
-  const [watchlist, setWatchlist] = useState<string[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const API_URL = process.env.EXPRESS_SERVER_URL || 'http://localhost:4000';
-  const { data: priceData, isLoading: pricesLoading } = useSWR(`${API_URL}/cache`, fetcher, {
-    refreshInterval: 5000,
-  });
 
-  useEffect(() => {
-    if (session?.user) {
-      fetch('/api/watchlist')
-        .then(res => res.json())
-        .then(data => {
-          if (data.watchlist) {
-            setWatchlist(data.watchlist.map((item: any) => item.asset_id));
-          }
-        })
-        .catch(err => console.error("Failed to load watchlist", err));
+  // 1. Fetch Market Prices
+  const { data: priceData, isLoading: pricesLoading } = useSWR(
+    `${API_URL}/cache`,
+    fetcher,
+    {
+      refreshInterval: 5000,
+      revalidateIfStale: false,
     }
-  }, [session]);
+  );
+
+  // 2. Fetch Watchlist
+  const { data: watchlistData, isLoading: watchlistLoading, mutate: mutateWatchlist } = useSWR(
+    session?.user ? '/api/watchlist' : null,
+    fetcher,
+    {
+      revalidateIfStale: false,
+      revalidateOnFocus: false
+    }
+  );
+
+  const watchlist = watchlistData?.watchlist?.map((item: any) => item.asset_id) || [];
 
   const toggleStar = async (assetId: string, assetName: string) => {
-    if (!session || isUpdating) {
-      if (!session) alert("Please log in to manage targets.");
-      return;
-    }
+    if (!session || isUpdating) return;
     setIsUpdating(true);
     const isStarred = watchlist.includes(assetId);
     try {
       if (isStarred) {
         await fetch(`/api/watchlist?asset_id=${assetId}`, { method: 'DELETE' });
-        setWatchlist(prev => prev.filter(id => id !== assetId));
       } else {
         await fetch('/api/watchlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ asset_id: assetId, asset_name: assetName })
         });
-        setWatchlist(prev => [...prev, assetId]);
       }
+      mutateWatchlist();
     } catch (error) {
       console.error("Database Error", error);
     } finally {
@@ -82,19 +83,32 @@ export default function MarketDataPage() {
     }
   };
 
-  const allPrices: CachedPrice[] = priceData?.data || [];
-  const filteredPrices = allPrices.filter(coin =>
+  const rawPrices: CachedPrice[] = priceData?.data || [];
+
+  // Sorting: Starred items always at the top
+  const sortedPrices = [...rawPrices].sort((a, b) => {
+    const aStarred = watchlist.includes(a.assetId);
+    const bStarred = watchlist.includes(b.assetId);
+    if (aStarred && !bStarred) return -1;
+    if (!aStarred && bStarred) return 1;
+    return 0;
+  });
+
+  const filteredPrices = sortedPrices.filter(coin =>
     coin.assetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     coin.assetId.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const isGlobalLoading =
+    status === 'loading' ||
+    pricesLoading ||
+    (status === 'authenticated' && watchlistLoading);
+
   return (
     <div className="min-h-screen flex bg-[#050505] text-white font-mono selection:bg-green-500/30">
 
-      {/* ✅ INJECT MOBILE NAVBAR */}
       <MobileNavbar />
 
-      {/* ─── DESKTOP SIDEBAR (Untouched) ─── */}
       <aside className="w-64 border-r border-green-900/20 bg-[#0a0a0a] p-6 hidden md:flex flex-col justify-between z-10 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
         <div>
           <div className="flex items-center gap-3 mb-12 text-green-500">
@@ -128,14 +142,13 @@ export default function MarketDataPage() {
           </nav>
         </div>
 
-        {/* Profile Widget */}
         {session?.user && (
           <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl mt-auto">
             <div className="w-8 h-8 rounded bg-green-900 text-green-500 flex items-center justify-center font-bold overflow-hidden uppercase">
               {session.user.image ? (
                 <img src={session.user.image} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                session.user.name?.charAt(0).toUpperCase() || session.user.email?.charAt(0).toUpperCase() || 'U'
+                session.user.name?.charAt(0).toUpperCase() || 'U'
               )}
             </div>
             <div className="overflow-hidden">
@@ -146,13 +159,10 @@ export default function MarketDataPage() {
         )}
       </aside>
 
-      {/* ─── MAIN CONTENT ─── */}
       <main className="flex-1 flex flex-col relative overflow-hidden">
-        {/* ✅ MOBILE PADDING ADDED (px-4 pt-24 pb-28 md:p-10) */}
         <div className="flex-1 overflow-y-auto px-4 pt-24 pb-28 md:p-10">
           <div className="max-w-7xl mx-auto">
 
-            {/* ✅ HEADER: Title scaling and gap tweaks for mobile */}
             <header className="mb-8 md:mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 md:w-12 md:h-12 border border-green-500/30 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.05)]">
@@ -177,17 +187,16 @@ export default function MarketDataPage() {
             </header>
 
             <div className="bg-[#0a0a0a] border border-zinc-800 rounded-2xl overflow-hidden">
-              {pricesLoading ? (
+              {isGlobalLoading ? (
                 <div className="flex flex-col items-center justify-center py-32 text-green-500/50">
                   <Activity className="w-8 h-8 animate-pulse mb-4" />
-                  <p className="tracking-widest text-xs uppercase">Indexing Market Data...</p>
+                  <p className="tracking-widest text-xs uppercase">Initializing Terminal...</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-zinc-800 text-[10px] text-zinc-500 tracking-widest uppercase bg-black/20">
-                        {/* ✅ Tighter padding on mobile (px-3 md:px-6) */}
                         <th className="px-3 md:px-6 py-4 md:py-5">Asset</th>
                         <th className="px-3 md:px-6 py-4 md:py-5">Last Quote</th>
                         <th className="px-3 md:px-6 py-4 md:py-5">24H Delta</th>
@@ -216,21 +225,22 @@ export default function MarketDataPage() {
   );
 }
 
-// ─── SUB-COMPONENT FOR TABLE ROW ───
 function MarketRow({ coin, isStarred, onToggle }: { coin: CachedPrice, isStarred: boolean, onToggle: () => void }) {
   const [imgError, setImgError] = useState(false);
   const symbol = mapIdToSymbol(coin.assetId);
   const isPositive = coin.change24h >= 0;
 
-  const colors = ['bg-orange-500', 'bg-indigo-500', 'bg-emerald-500', 'bg-blue-500', 'bg-purple-500'];
-  const fallbackColor = colors[coin.assetName.length % colors.length];
+  // ✅ Exactly matching the Watchlist's fallback logic
+  const initial = coin.assetName.charAt(0).toUpperCase();
+  const colors = ['bg-orange-500', 'bg-indigo-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500'];
+  const colorClass = colors[coin.assetName.length % colors.length];
 
   return (
     <tr className="hover:bg-white/[0.02] transition-colors group">
-      {/* ✅ Tighter padding on mobile (px-3 md:px-6) */}
       <td className="px-3 md:px-6 py-3 md:py-4">
         <div className="flex items-center gap-3 md:gap-4">
-          <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full overflow-hidden shrink-0 flex items-center justify-center shadow-lg ${imgError ? fallbackColor : 'bg-zinc-800/50'}`}>
+          {/* ✅ Applies the matching colorClass on error */}
+          <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full overflow-hidden shrink-0 flex items-center justify-center shadow-lg ${imgError ? colorClass : 'bg-zinc-800/50'}`}>
             {!imgError ? (
               <img
                 src={`https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/128/color/${symbol}.png`}
@@ -239,7 +249,7 @@ function MarketRow({ coin, isStarred, onToggle }: { coin: CachedPrice, isStarred
                 onError={() => setImgError(true)}
               />
             ) : (
-              <span className="text-white font-bold text-xs">{coin.assetName[0]}</span>
+              <span className="text-white font-bold text-xs uppercase">{initial}</span>
             )}
           </div>
           <div>

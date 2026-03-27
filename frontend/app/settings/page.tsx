@@ -11,10 +11,7 @@ import {
     User,
     Settings,
     BellRing,
-    Eye,
     Save,
-    LayoutTemplate,
-    Maximize,
     Loader2 // Added for the loading spinner
 } from 'lucide-react';
 
@@ -24,16 +21,13 @@ export default function SettingsPage() {
     // Interactive State Variables
     const [sensitivity, setSensitivity] = useState(-2.0);
     const [aggressivePolling, setAggressivePolling] = useState(false);
-    const [uiMode, setUiMode] = useState<'compact' | 'expanded'>('compact');
     const [isSaving, setIsSaving] = useState(false); // New saving state
 
     // ✅ FIXED: Load ALL saved preferences on mount so the UI remembers after a refresh
     useEffect(() => {
-        const savedUiMode = localStorage.getItem('bitbash-ui-mode') as 'compact' | 'expanded';
         const savedSensitivity = localStorage.getItem('bitbash-sensitivity');
         const savedPolling = localStorage.getItem('bitbash-polling');
 
-        if (savedUiMode) setUiMode(savedUiMode);
         if (savedSensitivity) setSensitivity(parseFloat(savedSensitivity));
         if (savedPolling) setAggressivePolling(savedPolling === 'true');
     }, []);
@@ -47,7 +41,6 @@ export default function SettingsPage() {
         setIsSaving(true);
 
         // ✅ FIXED: Save ALL settings to local browser storage so they survive a refresh
-        localStorage.setItem('bitbash-ui-mode', uiMode);
         localStorage.setItem('bitbash-sensitivity', sensitivity.toString());
         localStorage.setItem('bitbash-polling', aggressivePolling.toString());
 
@@ -198,52 +191,6 @@ export default function SettingsPage() {
                                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${aggressivePolling ? 'bg-green-500' : 'bg-zinc-800'}`}
                                     >
                                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${aggressivePolling ? 'translate-x-6' : 'translate-x-1'}`} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* ─── INTERFACE ADAPTATION CARD ─── */}
-                            <div className="bg-[#0a0a0a] border border-zinc-800 rounded-2xl p-8">
-                                <h3 className="text-sm font-bold tracking-widest text-white uppercase flex items-center gap-2 mb-8">
-                                    <Eye className="w-4 h-4 text-green-500" />
-                                    Interface Adaptation
-                                </h3>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Compact UI Option */}
-                                    <button
-                                        onClick={() => setUiMode('compact')}
-                                        className={`flex items-center justify-between p-5 rounded-xl border transition-all ${uiMode === 'compact'
-                                            ? 'bg-green-500/10 border-green-500/50 text-white shadow-[0_0_15px_rgba(34,197,94,0.05)]'
-                                            : 'bg-black/40 border-zinc-800/50 text-zinc-500 hover:border-zinc-700'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <LayoutTemplate className={`w-5 h-5 ${uiMode === 'compact' ? 'text-green-500' : 'text-zinc-600'}`} />
-                                            <span className="text-xs font-bold tracking-widest uppercase">Compact UI</span>
-                                        </div>
-                                        {/* Radio Dot */}
-                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${uiMode === 'compact' ? 'border-green-500' : 'border-zinc-700'}`}>
-                                            {uiMode === 'compact' && <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
-                                        </div>
-                                    </button>
-
-                                    {/* Expanded View Option */}
-                                    <button
-                                        onClick={() => setUiMode('expanded')}
-                                        className={`flex items-center justify-between p-5 rounded-xl border transition-all ${uiMode === 'expanded'
-                                            ? 'bg-green-500/10 border-green-500/50 text-white shadow-[0_0_15px_rgba(34,197,94,0.05)]'
-                                            : 'bg-black/40 border-zinc-800/50 text-zinc-500 hover:border-zinc-700'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <Maximize className={`w-5 h-5 ${uiMode === 'expanded' ? 'text-green-500' : 'text-zinc-600'}`} />
-                                            <span className="text-xs font-bold tracking-widest uppercase">Expanded View</span>
-                                        </div>
-                                        {/* Radio Dot */}
-                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${uiMode === 'expanded' ? 'border-zinc-700' : 'border-zinc-700'}`}>
-                                            {uiMode === 'expanded' && <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
-                                        </div>
                                     </button>
                                 </div>
                             </div>
