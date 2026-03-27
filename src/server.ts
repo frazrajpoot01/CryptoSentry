@@ -2,6 +2,7 @@
  * Bitbash Crypto Sentry — Express Surveillance Engine
  * FIXED: Supports CoinGecko /coins/markets (ALL coins) with real logos
  * UPDATED: Dynamic Settings Support (Threshold & Polling)
+ * ADDED: CoinGecko API Key Support for Render Deployment
  */
 
 import 'dotenv/config';
@@ -77,6 +78,8 @@ function fetchJson<T>(url: string): Promise<T> {
           headers: {
             'User-Agent': 'Bitbash-Crypto-Sentry/1.0',
             'Accept': 'application/json',
+            // 👇 THIS IS THE ONLY NEW LINE 👇
+            'x-cg-demo-api-key': process.env.COINGECKO_API_KEY || '',
           },
         },
         (res) => {
