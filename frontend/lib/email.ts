@@ -1,23 +1,28 @@
 import nodemailer from 'nodemailer';
 
+// ✅ Create transporter ONCE outside to reuse the connection (prevents Gmail "bot" flagging)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 export async function sendWelcomeEmail(userEmail: string, name: string) {
-    try {
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-        });
+  try {
+    const appUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
-        // We use your app URL if it exists in your .env, otherwise fallback to localhost for testing
-        const appUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const mailOptions = {
+      from: `"BitBash Sentry" <${process.env.EMAIL_USER}>`,
+      to: userEmail,
+      // ✅ Slightly more personal subject line
+      subject: `Welcome to BitBash, ${name}: Your Terminal is Ready`,
 
-        const mailOptions = {
-            from: `"BitBash Sentry" <${process.env.EMAIL_USER}>`,
-            to: userEmail,
-            subject: 'Welcome to BitBash: Your Terminal is Ready',
-            html: `
+      // ✅ CRITICAL FIX: Add Plain Text version for spam filters
+      text: `Welcome to Terminal One, ${name}. Your real-time crypto intelligence aggregate is now live. Access your dashboard here: ${appUrl}`,
+
+      html: `
         <!DOCTYPE html>
         <html>
         <head>
@@ -92,13 +97,13 @@ export async function sendWelcomeEmail(userEmail: string, name: string) {
         </body>
         </html>
       `,
-        };
+    };
 
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Welcome email sent successfully!', info.messageId);
-        return true;
-    } catch (error) {
-        console.error('Nodemailer Error:', error);
-        return false;
-    }
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Welcome email sent successfully!', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Nodemailer Error:', error);
+    return false;
+  }
 }
