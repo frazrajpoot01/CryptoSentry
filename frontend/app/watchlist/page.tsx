@@ -288,9 +288,7 @@ function WatchlistCard({ coin, isStarred, onToggle }: { coin: CachedPrice, isSta
                 </p>
             </div>
 
-            <button className="w-full py-2.5 mt-auto bg-white/5 hover:bg-white/10 text-zinc-400 text-[10px] tracking-widest font-bold uppercase rounded-lg transition-colors flex items-center justify-center gap-2">
-                Full Analysis <ExternalLink className="w-3 h-3" />
-            </button>
+
         </div>
     );
 }
