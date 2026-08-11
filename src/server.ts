@@ -227,6 +227,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).send("Backend is running");
+});
+
 app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
